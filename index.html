@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Averages Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1><i class="fas fa-chart-line"></i> Agent Averages Dashboard</h1>
+            <p>Calculate and analyze sales agent performance by branch and position</p>
+        </header>
+
+        <main class="main-content">
+            <!-- Top Section: Roster and Upload -->
+            <div class="top-section">
+                <!-- Agent Roster Panel -->
+                <section class="panel roster-panel">
+                    <div class="panel-header">
+                        <h2><i class="fas fa-users"></i> Agent Roster</h2>
+                        <div class="roster-actions">
+                            <button class="btn btn-small btn-secondary" id="exportRosterBtn" title="Export roster to JSON">
+                                <i class="fas fa-download"></i> Export
+                            </button>
+                            <button class="btn btn-small btn-secondary" id="importRosterBtn" title="Import roster from JSON">
+                                <i class="fas fa-upload"></i> Import
+                            </button>
+                            <input type="file" id="importFileInput" accept=".json" style="display: none;">
+                        </div>
+                    </div>
+                    
+                    <!-- Add Agent Form -->
+                    <div class="add-agent-form">
+                        <input type="text" id="agentInitials" placeholder="Initials" maxlength="4" class="input-field">
+                        <select id="agentBranch" class="select-field">
+                            <option value="">Branch</option>
+                            <option value="TIJ">TIJ</option>
+                            <option value="RSA">RSA</option>
+                            <option value="OVS">OVS</option>
+                        </select>
+                        <select id="agentPosition" class="select-field">
+                            <option value="">Position</option>
+                            <option value="CLOSER">Closer</option>
+                            <option value="DIALER">Dialer</option>
+                        </select>
+                        <button class="btn btn-primary" id="addAgentBtn">
+                            <i class="fas fa-plus"></i> Add
+                        </button>
+                    </div>
+
+                    <!-- Agent List -->
+                    <div class="roster-table-container">
+                        <table class="roster-table" id="rosterTable">
+                            <thead>
+                                <tr>
+                                    <th>Agent</th>
+                                    <th>Branch</th>
+                                    <th>Position</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rosterBody">
+                                <!-- Agents will be populated here -->
+                            </tbody>
+                        </table>
+                        <div class="empty-roster" id="emptyRoster">
+                            <i class="fas fa-user-plus"></i>
+                            <p>No agents in roster. Add agents above to get started.</p>
+                        </div>
+                    </div>
+                    <div class="roster-count" id="rosterCount">0 agents</div>
+                </section>
+
+                <!-- Right Column: Upload and Filters -->
+                <div class="right-column">
+                    <!-- Upload Section -->
+                    <section class="panel upload-panel">
+                        <div class="panel-header">
+                            <h2><i class="fas fa-file-csv"></i> Upload CRM Report</h2>
+                        </div>
+                        <div class="upload-zone" id="uploadZone">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <p>Drag & drop your CRM CSV file here</p>
+                            <span>or</span>
+                            <button class="btn btn-primary" id="browseBtn">Browse Files</button>
+                            <input type="file" id="csvFileInput" accept=".csv" style="display: none;">
+                        </div>
+                        <div class="upload-status" id="uploadStatus" style="display: none;">
+                            <div class="status-item matched">
+                                <i class="fas fa-check-circle"></i>
+                                <span>Matched: <strong id="matchedCount">0</strong> agents</span>
+                            </div>
+                            <div class="status-item skipped">
+                                <i class="fas fa-exclamation-circle"></i>
+                                <span>Skipped: <strong id="skippedCount">0</strong> (not in roster)</span>
+                            </div>
+                            <button class="btn btn-small btn-secondary" id="viewSkippedBtn" style="display: none;">
+                                View Skipped
+                            </button>
+                        </div>
+                    </section>
+
+                    <!-- Filters Section -->
+                    <section class="panel filters-panel">
+                        <div class="panel-header">
+                            <h2><i class="fas fa-filter"></i> Filters</h2>
+                        </div>
+                        <div class="filters-content">
+                            <div class="filter-group">
+                                <label class="filter-label">Branch</label>
+                                <div class="checkbox-group">
+                                    <label class="checkbox-item">
+                                        <input type="checkbox" id="branchAll" checked>
+                                        <span class="checkmark"></span>
+                                        All Branches
+                                    </label>
+                                    <label class="checkbox-item">
+                                        <input type="checkbox" class="branch-checkbox" value="TIJ">
+                                        <span class="checkmark"></span>
+                                        TIJ
+                                    </label>
+                                    <label class="checkbox-item">
+                                        <input type="checkbox" class="branch-checkbox" value="RSA">
+                                        <span class="checkmark"></span>
+                                        RSA
+                                    </label>
+                                    <label class="checkbox-item">
+                                        <input type="checkbox" class="branch-checkbox" value="OVS">
+                                        <span class="checkmark"></span>
+                                        OVS
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="filter-group">
+                                <label class="filter-label">Position</label>
+                                <div class="checkbox-group">
+                                    <label class="checkbox-item">
+                                        <input type="checkbox" id="positionAll" checked>
+                                        <span class="checkmark"></span>
+                                        All Positions
+                                    </label>
+                                    <label class="checkbox-item">
+                                        <input type="checkbox" class="position-checkbox" value="CLOSER">
+                                        <span class="checkmark"></span>
+                                        Closer
+                                    </label>
+                                    <label class="checkbox-item">
+                                        <input type="checkbox" class="position-checkbox" value="DIALER">
+                                        <span class="checkmark"></span>
+                                        Dialer
+                                    </label>
+                                </div>
+                            </div>
+                            <button class="btn btn-accent btn-large" id="calculateBtn" disabled>
+                                <i class="fas fa-calculator"></i> Calculate Averages
+                            </button>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <section class="panel results-panel" id="resultsPanel" style="display: none;">
+                <div class="panel-header">
+                    <h2><i class="fas fa-chart-bar"></i> Results</h2>
+                    <button class="btn btn-small btn-secondary" id="exportResultsBtn">
+                        <i class="fas fa-download"></i> Export Results
+                    </button>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="stats-grid" id="statsGrid">
+                    <!-- Stats cards will be populated here -->
+                </div>
+
+                <!-- Agent Breakdown Table -->
+                <div class="breakdown-section">
+                    <h3><i class="fas fa-list"></i> Agent Breakdown</h3>
+                    <div class="breakdown-table-container">
+                        <table class="breakdown-table" id="breakdownTable">
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>Agent</th>
+                                    <th>Branch</th>
+                                    <th>Position</th>
+                                    <th>Collected</th>
+                                    <th>vs. Average</th>
+                                </tr>
+                            </thead>
+                            <tbody id="breakdownBody">
+                                <!-- Breakdown rows will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <p>Powered by PHG <i class="fas fa-bolt"></i></p>
+        </footer>
+    </div>
+
+    <!-- Skipped Agents Modal -->
+    <div class="modal" id="skippedModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-user-slash"></i> Skipped Agents</h3>
+                <button class="modal-close" id="closeSkippedModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>These agents from the CRM report were not found in your roster:</p>
+                <ul class="skipped-list" id="skippedList">
+                    <!-- Skipped agents will be listed here -->
+                </ul>
+                <p class="hint">Add these agents to your roster if they should be included in calculations.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">
+        <i class="fas fa-check-circle"></i>
+        <span id="toastMessage">Action completed</span>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
+
