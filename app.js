@@ -20,8 +20,8 @@ class AgentAveragesDashboard {
         this.init();
     }
 
-    init() {
-        this.loadRoster();
+    async init() {
+        await this.loadRoster();
         this.bindEvents();
         this.renderRoster();
         this.updateFilterState();
@@ -31,7 +31,28 @@ class AgentAveragesDashboard {
     // LOCAL STORAGE / DATA PERSISTENCE
     // ============================================
 
-    loadRoster() {
+    async loadRoster() {
+        try {
+            // First, try to load from the shared roster.json file
+            const response = await fetch('roster.json');
+            if (response.ok) {
+                const sharedRoster = await response.json();
+                this.roster = sharedRoster.sort((a, b) => a.initials.localeCompare(b.initials));
+                console.log('Loaded roster from roster.json:', this.roster.length, 'agents');
+                
+                // Check if user has local edits (in localStorage)
+                const localEdits = localStorage.getItem(this.STORAGE_KEY);
+                if (localEdits) {
+                    // Show a subtle indicator that local changes exist
+                    this.hasLocalEdits = true;
+                }
+                return;
+            }
+        } catch (e) {
+            console.log('Could not load roster.json, falling back to localStorage/defaults');
+        }
+        
+        // Fallback: Try localStorage (for local development or offline)
         try {
             const stored = localStorage.getItem(this.STORAGE_KEY);
             if (stored) {
@@ -49,6 +70,7 @@ class AgentAveragesDashboard {
 
     getDefaultRoster() {
         // Pre-populated roster based on sample agent data
+        // OVS agents split between Egypt (EG) and Philippines (PH)
         return [
             // TIJ Agents
             { initials: 'AZN', branch: 'TIJ', position: 'CLOSER' },
@@ -67,35 +89,68 @@ class AgentAveragesDashboard {
             { initials: 'OEL', branch: 'RSA', position: 'DIALER' },
             { initials: 'SCG', branch: 'RSA', position: 'DIALER' },
             { initials: 'SVJ', branch: 'RSA', position: 'CLOSER' },
-            // OVS Agents (Overseas)
-            { initials: 'AXE', branch: 'OVS', position: 'DIALER' },
-            { initials: 'AXM', branch: 'OVS', position: 'DIALER' },
-            { initials: 'AXY', branch: 'OVS', position: 'DIALER' },
-            { initials: 'EXM', branch: 'OVS', position: 'DIALER' },
-            { initials: 'GXC', branch: 'OVS', position: 'DIALER' },
-            { initials: 'HXS', branch: 'OVS', position: 'DIALER' },
-            { initials: 'JAU', branch: 'OVS', position: 'DIALER' },
-            { initials: 'JQM', branch: 'OVS', position: 'DIALER' },
-            { initials: 'JYF', branch: 'OVS', position: 'DIALER' },
-            { initials: 'MXG', branch: 'OVS', position: 'DIALER' },
-            { initials: 'PGA', branch: 'OVS', position: 'DIALER' },
-            { initials: 'RBD', branch: 'OVS', position: 'DIALER' },
-            { initials: 'RJB', branch: 'OVS', position: 'DIALER' },
-            { initials: 'RTM', branch: 'OVS', position: 'DIALER' },
-            { initials: 'RXM', branch: 'OVS', position: 'DIALER' },
-            { initials: 'RXY', branch: 'OVS', position: 'DIALER' },
-            { initials: 'SJC', branch: 'OVS', position: 'DIALER' },
-            { initials: 'WJC', branch: 'OVS', position: 'DIALER' },
-            { initials: 'YXY', branch: 'OVS', position: 'DIALER' }
+            // OVS-EG Agents (Egypt) - First half of overseas
+            { initials: 'AXE', branch: 'OVS-EG', position: 'DIALER' },
+            { initials: 'AXM', branch: 'OVS-EG', position: 'DIALER' },
+            { initials: 'AXY', branch: 'OVS-EG', position: 'DIALER' },
+            { initials: 'EXM', branch: 'OVS-EG', position: 'DIALER' },
+            { initials: 'GXC', branch: 'OVS-EG', position: 'DIALER' },
+            { initials: 'HXS', branch: 'OVS-EG', position: 'DIALER' },
+            { initials: 'JAU', branch: 'OVS-EG', position: 'DIALER' },
+            { initials: 'JQM', branch: 'OVS-EG', position: 'DIALER' },
+            { initials: 'JYF', branch: 'OVS-EG', position: 'DIALER' },
+            // OVS-PH Agents (Philippines) - Second half of overseas
+            { initials: 'MXG', branch: 'OVS-PH', position: 'DIALER' },
+            { initials: 'PGA', branch: 'OVS-PH', position: 'DIALER' },
+            { initials: 'RBD', branch: 'OVS-PH', position: 'DIALER' },
+            { initials: 'RJB', branch: 'OVS-PH', position: 'DIALER' },
+            { initials: 'RTM', branch: 'OVS-PH', position: 'DIALER' },
+            { initials: 'RXM', branch: 'OVS-PH', position: 'DIALER' },
+            { initials: 'RXY', branch: 'OVS-PH', position: 'DIALER' },
+            { initials: 'SJC', branch: 'OVS-PH', position: 'DIALER' },
+            { initials: 'WJC', branch: 'OVS-PH', position: 'DIALER' },
+            { initials: 'YXY', branch: 'OVS-PH', position: 'DIALER' }
         ].sort((a, b) => a.initials.localeCompare(b.initials));
+    }
+
+    // Branch configuration for display and hierarchy
+    getBranchConfig() {
+        return {
+            'TIJ': { label: 'TIJ', parent: null },
+            'RSA': { label: 'RSA', parent: null },
+            'OVS-EG': { label: 'Egypt', parent: 'OVS' },
+            'OVS-PH': { label: 'Philippines', parent: 'OVS' }
+        };
+    }
+
+    getBranchDisplayName(branch) {
+        const config = this.getBranchConfig();
+        return config[branch]?.label || branch;
+    }
+
+    isOverseasBranch(branch) {
+        return branch === 'OVS-EG' || branch === 'OVS-PH';
     }
 
     saveRoster() {
         try {
             localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.roster));
+            this.hasLocalEdits = true;
+            this.updateExportButtonIndicator();
         } catch (e) {
             console.error('Error saving roster:', e);
             this.showToast('Error saving roster', true);
+        }
+    }
+
+    updateExportButtonIndicator() {
+        const exportBtn = document.getElementById('exportRosterBtn');
+        if (this.hasLocalEdits) {
+            exportBtn.classList.add('has-changes');
+            exportBtn.title = 'Export roster to JSON (you have unsaved changes!)';
+        } else {
+            exportBtn.classList.remove('has-changes');
+            exportBtn.title = 'Export roster to JSON';
         }
     }
 
@@ -159,10 +214,10 @@ class AgentAveragesDashboard {
         document.getElementById('positionAll').addEventListener('change', (e) => this.handleAllPositionsChange(e));
         
         document.querySelectorAll('.branch-checkbox').forEach(cb => {
-            cb.addEventListener('change', () => this.handleBranchCheckboxChange());
+            cb.addEventListener('change', (e) => this.handleBranchCheckboxChange(e.target));
         });
         document.querySelectorAll('.position-checkbox').forEach(cb => {
-            cb.addEventListener('change', () => this.handlePositionCheckboxChange());
+            cb.addEventListener('change', (e) => this.handlePositionCheckboxChange(e.target));
         });
 
         // Calculate Button
@@ -221,7 +276,7 @@ class AgentAveragesDashboard {
         positionSelect.value = '';
         initialsInput.focus();
 
-        this.showToast(`Agent ${initials} added to roster`);
+        this.showToast(`Agent ${initials} added. Remember to Export when done!`);
         
         // Re-process sales data if loaded
         if (this.salesData.length > 0) {
@@ -235,7 +290,7 @@ class AgentAveragesDashboard {
             this.roster.splice(index, 1);
             this.saveRoster();
             this.renderRoster();
-            this.showToast(`Agent ${initials} removed`);
+            this.showToast(`Agent ${initials} removed. Remember to Export!`);
             
             // Re-process sales data if loaded
             if (this.salesData.length > 0) {
@@ -262,8 +317,20 @@ class AgentAveragesDashboard {
         tbody.innerHTML = this.roster.map(agent => `
             <tr>
                 <td class="agent-initials">${agent.initials}</td>
-                <td><span class="branch-tag ${agent.branch}">${agent.branch}</span></td>
-                <td><span class="position-tag ${agent.position}">${agent.position === 'CLOSER' ? 'Closer' : 'Dialer'}</span></td>
+                <td>
+                    <select class="inline-select branch-select" onchange="app.updateAgent('${agent.initials}', 'branch', this.value)">
+                        <option value="TIJ" ${agent.branch === 'TIJ' ? 'selected' : ''}>TIJ</option>
+                        <option value="RSA" ${agent.branch === 'RSA' ? 'selected' : ''}>RSA</option>
+                        <option value="OVS-EG" ${agent.branch === 'OVS-EG' ? 'selected' : ''}>Egypt</option>
+                        <option value="OVS-PH" ${agent.branch === 'OVS-PH' ? 'selected' : ''}>Philippines</option>
+                    </select>
+                </td>
+                <td>
+                    <select class="inline-select position-select" onchange="app.updateAgent('${agent.initials}', 'position', this.value)">
+                        <option value="CLOSER" ${agent.position === 'CLOSER' ? 'selected' : ''}>Closer</option>
+                        <option value="DIALER" ${agent.position === 'DIALER' ? 'selected' : ''}>Dialer</option>
+                    </select>
+                </td>
                 <td>
                     <button class="remove-btn" onclick="app.removeAgent('${agent.initials}')" title="Remove agent">
                         <i class="fas fa-trash-alt"></i>
@@ -273,23 +340,46 @@ class AgentAveragesDashboard {
         `).join('');
     }
 
+    updateAgent(initials, field, value) {
+        const agent = this.roster.find(a => a.initials === initials);
+        if (agent) {
+            agent[field] = value;
+            this.saveRoster();
+            
+            const fieldLabel = field === 'branch' ? this.getBranchDisplayName(value) : (value === 'CLOSER' ? 'Closer' : 'Dialer');
+            this.showToast(`${initials} → ${fieldLabel}. Export when done!`);
+            
+            // Re-process sales data if loaded
+            if (this.salesData.length > 0) {
+                this.matchAgentsToRoster();
+            }
+        }
+    }
+
     exportRoster() {
         if (this.roster.length === 0) {
             this.showToast('No agents to export', true);
             return;
         }
 
+        // Format for roster.json (pretty printed)
         const data = JSON.stringify(this.roster, null, 2);
         const blob = new Blob([data], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         
         const a = document.createElement('a');
         a.href = url;
-        a.download = `agent_roster_${new Date().toISOString().split('T')[0]}.json`;
+        a.download = 'roster.json'; // Always name it roster.json for easy replacement
         a.click();
         
         URL.revokeObjectURL(url);
-        this.showToast('Roster exported successfully');
+        
+        // Clear the "has changes" indicator
+        this.hasLocalEdits = false;
+        localStorage.removeItem(this.STORAGE_KEY);
+        this.updateExportButtonIndicator();
+        
+        this.showToast('Roster exported! Replace roster.json in GitHub to share.');
     }
 
     importRoster(event) {
@@ -306,9 +396,10 @@ class AgentAveragesDashboard {
                 }
 
                 // Validate each agent
+                const validBranches = ['TIJ', 'RSA', 'OVS', 'OVS-EG', 'OVS-PH'];
                 const validAgents = imported.filter(a => 
                     a.initials && 
-                    ['TIJ', 'RSA', 'OVS'].includes(a.branch) &&
+                    validBranches.includes(a.branch) &&
                     ['CLOSER', 'DIALER'].includes(a.position)
                 );
 
@@ -355,23 +446,157 @@ class AgentAveragesDashboard {
     // ============================================
 
     processCSVFile(file) {
-        if (!file.name.toLowerCase().endsWith('.csv')) {
-            this.showToast('Please select a CSV file', true);
+        const fileName = file.name.toLowerCase();
+        const isExcel = fileName.endsWith('.xlsx') || fileName.endsWith('.xls');
+        const isCSV = fileName.endsWith('.csv');
+
+        if (!isExcel && !isCSV) {
+            this.showToast('Please select a CSV or Excel file', true);
             return;
         }
 
         const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                this.parseCSV(e.target.result);
-                this.matchAgentsToRoster();
-                this.showToast('CRM report loaded successfully');
-            } catch (error) {
-                console.error('CSV parsing error:', error);
-                this.showToast('Error parsing CSV file', true);
+        
+        if (isExcel) {
+            // Handle Excel files
+            reader.onload = (e) => {
+                try {
+                    this.parseExcel(e.target.result);
+                    this.matchAgentsToRoster();
+                    this.showToast('CRM report loaded successfully');
+                } catch (error) {
+                    console.error('Excel parsing error:', error);
+                    this.showToast('Error parsing Excel file: ' + error.message, true);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        } else {
+            // Handle CSV files
+            reader.onload = (e) => {
+                try {
+                    this.parseCSV(e.target.result);
+                    this.matchAgentsToRoster();
+                    this.showToast('CRM report loaded successfully');
+                } catch (error) {
+                    console.error('CSV parsing error:', error);
+                    this.showToast('Error parsing CSV file: ' + error.message, true);
+                }
+            };
+            reader.readAsText(file);
+        }
+    }
+
+    parseExcel(arrayBuffer) {
+        // Use SheetJS to parse Excel file
+        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+        
+        // Get the first sheet
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        
+        // Convert to JSON array
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+        
+        if (jsonData.length < 2) {
+            throw new Error('Excel file appears to be empty');
+        }
+
+        // Find the header row (may not be the first row due to title rows)
+        let headerRowIndex = -1;
+        let headers = [];
+        
+        for (let i = 0; i < Math.min(jsonData.length, 10); i++) {
+            const row = jsonData[i];
+            if (!row || row.length === 0) continue;
+            
+            const rowHeaders = row.map(h => String(h || '').toLowerCase().trim());
+            
+            // Check if this row contains header-like content
+            const hasAgentHeader = rowHeaders.some(h => 
+                h === 'collector' || h === 'agent' || h === 'agent initials' || 
+                h === 'initials' || h === 'name' || h === 'user' || h === 'rep'
+            );
+            const hasAmountHeader = rowHeaders.some(h => 
+                h.includes('total') || h.includes('collected') || 
+                h.includes('sales') || h.includes('amount') || h.includes('payment')
+            );
+            
+            if (hasAgentHeader && hasAmountHeader) {
+                headerRowIndex = i;
+                headers = rowHeaders;
+                break;
             }
-        };
-        reader.readAsText(file);
+        }
+
+        if (headerRowIndex === -1) {
+            // List first few non-empty cells for debugging
+            const sampleData = jsonData.slice(0, 5).map(r => r ? r.slice(0, 5).join(', ') : '(empty)').join(' | ');
+            throw new Error('Could not find header row with Agent/Collector and Total columns. Sample data: ' + sampleData);
+        }
+
+        // Find column indices
+        const agentIndex = headers.findIndex(h => 
+            h === 'collector' || h === 'agent' || h === 'agent initials' || 
+            h === 'initials' || h === 'name' || h === 'user' || h === 'rep'
+        );
+        
+        // For collected amount, prefer "total w/pdp" (includes post-dated payments)
+        // Look for specific patterns in order of preference
+        let collectedIndex = headers.findIndex(h => h === 'total w/pdp');
+        if (collectedIndex === -1) {
+            collectedIndex = headers.findIndex(h => h === 'total');
+        }
+        if (collectedIndex === -1) {
+            collectedIndex = headers.findIndex(h => h === 'total payments');
+        }
+        if (collectedIndex === -1) {
+            collectedIndex = headers.findIndex(h => 
+                h.includes('collected') || h.includes('total') || 
+                h.includes('sales') || h.includes('amount')
+            );
+        }
+
+        if (agentIndex === -1) {
+            throw new Error('Could not find Agent/Collector column. Found: ' + headers.filter(h => h).join(', '));
+        }
+        if (collectedIndex === -1) {
+            throw new Error('Could not find Total/Collected column. Found: ' + headers.filter(h => h).join(', '));
+        }
+
+        console.log('Parsing Excel - Agent column:', headers[agentIndex], 'Amount column:', headers[collectedIndex]);
+
+        this.salesData = [];
+        
+        // Start from row after headers
+        for (let i = headerRowIndex + 1; i < jsonData.length; i++) {
+            const row = jsonData[i];
+            if (!row || row.length === 0) continue;
+            
+            const agentRaw = row[agentIndex];
+            const agent = String(agentRaw || '').trim().toUpperCase();
+            const collectedRaw = row[collectedIndex];
+            
+            // Skip header rows, totals, summary rows, or empty rows
+            if (!agent || 
+                agent.includes('COLLECTOR') || 
+                agent.includes('AGENT') || 
+                agent.includes('TOTAL') || 
+                agent.includes('GRAND') ||
+                agent.includes('SUMMARY') ||
+                agent === '') continue;
+            
+            const collected = this.parseCurrency(collectedRaw);
+            
+            if (agent && agent.length <= 5) { // Agent initials should be short
+                this.salesData.push({ agent, collected });
+            }
+        }
+
+        if (this.salesData.length === 0) {
+            throw new Error('No valid agent data found in the Excel file');
+        }
+        
+        console.log('Parsed', this.salesData.length, 'agents from Excel');
     }
 
     parseCSV(text) {
@@ -436,9 +661,23 @@ class AgentAveragesDashboard {
     }
 
     parseCurrency(value) {
-        if (!value) return 0;
-        // Remove currency symbols, commas, and whitespace
-        const cleaned = value.replace(/[$,\s]/g, '');
+        if (value === null || value === undefined || value === '') return 0;
+        
+        // If it's already a number (from Excel), return it directly
+        if (typeof value === 'number') {
+            return isNaN(value) ? 0 : value;
+        }
+        
+        // Convert to string and clean up
+        const strValue = String(value);
+        // Remove currency symbols, commas, whitespace, and handle parentheses for negative
+        let cleaned = strValue.replace(/[$,\s]/g, '');
+        
+        // Handle accounting format with parentheses for negative numbers
+        if (cleaned.startsWith('(') && cleaned.endsWith(')')) {
+            cleaned = '-' + cleaned.slice(1, -1);
+        }
+        
         const parsed = parseFloat(cleaned);
         return isNaN(parsed) ? 0 : parsed;
     }
@@ -495,40 +734,79 @@ class AgentAveragesDashboard {
     // ============================================
 
     handleAllBranchesChange(e) {
-        const isChecked = e.target.checked;
-        document.querySelectorAll('.branch-checkbox').forEach(cb => {
-            cb.checked = false;
-            cb.disabled = isChecked;
-        });
+        if (e.target.checked) {
+            // When "All" is checked, uncheck individual branches
+            document.querySelectorAll('.branch-checkbox').forEach(cb => {
+                cb.checked = false;
+            });
+        }
     }
 
     handleAllPositionsChange(e) {
-        const isChecked = e.target.checked;
-        document.querySelectorAll('.position-checkbox').forEach(cb => {
-            cb.checked = false;
-            cb.disabled = isChecked;
-        });
+        if (e.target.checked) {
+            // When "All" is checked, uncheck individual positions
+            document.querySelectorAll('.position-checkbox').forEach(cb => {
+                cb.checked = false;
+            });
+        }
     }
 
-    handleBranchCheckboxChange() {
+    handleBranchCheckboxChange(clickedCheckbox) {
+        const branchAll = document.getElementById('branchAll');
+        
+        // If clicking an individual branch, auto-uncheck "All"
+        if (clickedCheckbox && clickedCheckbox.checked) {
+            branchAll.checked = false;
+        }
+        
+        // Handle OVS parent/child relationship
+        if (clickedCheckbox) {
+            const isParent = clickedCheckbox.classList.contains('branch-parent');
+            const isChild = clickedCheckbox.classList.contains('branch-child');
+            
+            if (isParent && clickedCheckbox.checked) {
+                // Parent checked: check all children, uncheck children individually
+                const childBranches = clickedCheckbox.dataset.children?.split(',') || [];
+                childBranches.forEach(childValue => {
+                    const childCb = document.querySelector(`.branch-child[value="${childValue}"]`);
+                    if (childCb) childCb.checked = false;
+                });
+            } else if (isChild && clickedCheckbox.checked) {
+                // Child checked: uncheck parent (user wants specific sub-branch)
+                const parentValue = clickedCheckbox.dataset.parent;
+                const parentCb = document.querySelector(`.branch-parent[value="${parentValue}"]`);
+                if (parentCb) parentCb.checked = false;
+            }
+        }
+        
+        // If no individual branches are checked, re-check "All"
         const branchCheckboxes = document.querySelectorAll('.branch-checkbox');
         const anyChecked = Array.from(branchCheckboxes).some(cb => cb.checked);
-        document.getElementById('branchAll').checked = !anyChecked;
+        if (!anyChecked) {
+            branchAll.checked = true;
+        }
     }
 
-    handlePositionCheckboxChange() {
+    handlePositionCheckboxChange(clickedCheckbox) {
+        const positionAll = document.getElementById('positionAll');
+        
+        // If clicking an individual position, auto-uncheck "All"
+        if (clickedCheckbox && clickedCheckbox.checked) {
+            positionAll.checked = false;
+        }
+        
+        // If no individual positions are checked, re-check "All"
         const positionCheckboxes = document.querySelectorAll('.position-checkbox');
         const anyChecked = Array.from(positionCheckboxes).some(cb => cb.checked);
-        document.getElementById('positionAll').checked = !anyChecked;
+        if (!anyChecked) {
+            positionAll.checked = true;
+        }
     }
 
     updateFilterState() {
         // Ensure "All" checkboxes start checked
         document.getElementById('branchAll').checked = true;
         document.getElementById('positionAll').checked = true;
-        
-        document.querySelectorAll('.branch-checkbox').forEach(cb => cb.disabled = true);
-        document.querySelectorAll('.position-checkbox').forEach(cb => cb.disabled = true);
     }
 
     updateCalculateButton() {
@@ -538,10 +816,30 @@ class AgentAveragesDashboard {
 
     getSelectedBranches() {
         if (document.getElementById('branchAll').checked) {
-            return ['TIJ', 'RSA', 'OVS'];
+            return ['TIJ', 'RSA', 'OVS-EG', 'OVS-PH'];
         }
-        return Array.from(document.querySelectorAll('.branch-checkbox:checked'))
-            .map(cb => cb.value);
+        
+        const selected = [];
+        const checkedBoxes = document.querySelectorAll('.branch-checkbox:checked');
+        
+        checkedBoxes.forEach(cb => {
+            const value = cb.value;
+            // If OVS parent is selected, expand to both sub-branches
+            if (value === 'OVS') {
+                selected.push('OVS-EG', 'OVS-PH');
+            } else {
+                selected.push(value);
+            }
+        });
+        
+        // Remove duplicates
+        return [...new Set(selected)];
+    }
+    
+    // Check if OVS (all overseas) was selected for results display
+    isOVSGroupSelected() {
+        const ovsParent = document.querySelector('.branch-parent[value="OVS"]');
+        return ovsParent && ovsParent.checked;
     }
 
     getSelectedPositions() {
@@ -559,6 +857,7 @@ class AgentAveragesDashboard {
     calculateAverages() {
         const selectedBranches = this.getSelectedBranches();
         const selectedPositions = this.getSelectedPositions();
+        const showOVSGroup = this.isOVSGroupSelected();
 
         if (selectedBranches.length === 0 || selectedPositions.length === 0) {
             this.showToast('Please select at least one branch and one position', true);
@@ -581,12 +880,29 @@ class AgentAveragesDashboard {
 
         // Calculate averages by branch
         const branchAverages = {};
-        selectedBranches.forEach(branch => {
+        
+        // If OVS group was selected, show combined OVS average first
+        if (showOVSGroup) {
+            const ovsAgents = filteredAgents.filter(a => this.isOverseasBranch(a.branch));
+            if (ovsAgents.length > 0) {
+                branchAverages['OVS (All)'] = {
+                    average: this.calculateAverage(ovsAgents),
+                    count: ovsAgents.length,
+                    isGroup: true
+                };
+            }
+        }
+        
+        // Show individual branch averages
+        const uniqueBranches = [...new Set(filteredAgents.map(a => a.branch))];
+        uniqueBranches.forEach(branch => {
             const branchAgents = filteredAgents.filter(a => a.branch === branch);
             if (branchAgents.length > 0) {
-                branchAverages[branch] = {
+                const label = this.getBranchDisplayName(branch);
+                branchAverages[label] = {
                     average: this.calculateAverage(branchAgents),
-                    count: branchAgents.length
+                    count: branchAgents.length,
+                    branchCode: branch
                 };
             }
         });
@@ -605,13 +921,14 @@ class AgentAveragesDashboard {
 
         // Calculate combined averages (branch + position)
         const combinedAverages = {};
-        selectedBranches.forEach(branch => {
+        uniqueBranches.forEach(branch => {
             selectedPositions.forEach(position => {
                 const combinedAgents = filteredAgents.filter(
                     a => a.branch === branch && a.position === position
                 );
                 if (combinedAgents.length > 0) {
-                    const key = `${branch} ${position === 'CLOSER' ? 'Closers' : 'Dialers'}`;
+                    const branchLabel = this.getBranchDisplayName(branch);
+                    const key = `${branchLabel} ${position === 'CLOSER' ? 'Closers' : 'Dialers'}`;
                     combinedAverages[key] = {
                         average: this.calculateAverage(combinedAgents),
                         count: combinedAgents.length
@@ -671,8 +988,9 @@ class AgentAveragesDashboard {
 
         // Branch cards
         Object.entries(branchAverages).forEach(([branch, data]) => {
+            const cardClass = data.isGroup ? 'stat-card group-card' : 'stat-card';
             cardsHTML += `
-                <div class="stat-card">
+                <div class="${cardClass}">
                     <div class="stat-label">${branch} Average</div>
                     <div class="stat-value">${this.formatCurrency(data.average)}</div>
                     <div class="stat-count">${data.count} agents</div>
@@ -718,12 +1036,15 @@ class AgentAveragesDashboard {
             const comparisonText = diff >= 0 
                 ? `+${this.formatCurrency(diff)} (+${diffPercent.toFixed(0)}%)`
                 : `${this.formatCurrency(diff)} (${diffPercent.toFixed(0)}%)`;
+            
+            const branchDisplay = this.getBranchDisplayName(agent.branch);
+            const branchClass = agent.branch.replace('-', '_'); // CSS class safe
 
             return `
                 <tr>
                     <td class="rank ${rankClass}">#${rank}</td>
                     <td class="agent-initials">${agent.initials}</td>
-                    <td><span class="branch-tag ${agent.branch}">${agent.branch}</span></td>
+                    <td><span class="branch-tag ${branchClass}">${branchDisplay}</span></td>
                     <td><span class="position-tag ${agent.position}">${agent.position === 'CLOSER' ? 'Closer' : 'Dialer'}</span></td>
                     <td class="collected">${this.formatCurrency(agent.collected)}</td>
                     <td class="comparison ${comparisonClass}">${comparisonText}</td>

@@ -6,6 +6,8 @@
     <title>Agent Averages Dashboard</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+    <!-- SheetJS for Excel file support -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -39,7 +41,8 @@
                             <option value="">Branch</option>
                             <option value="TIJ">TIJ</option>
                             <option value="RSA">RSA</option>
-                            <option value="OVS">OVS</option>
+                            <option value="OVS-EG">OVS - Egypt</option>
+                            <option value="OVS-PH">OVS - Philippines</option>
                         </select>
                         <select id="agentPosition" class="select-field">
                             <option value="">Position</option>
@@ -83,10 +86,10 @@
                         </div>
                         <div class="upload-zone" id="uploadZone">
                             <i class="fas fa-cloud-upload-alt"></i>
-                            <p>Drag & drop your CRM CSV file here</p>
+                            <p>Drag & drop your CRM file here (CSV or Excel)</p>
                             <span>or</span>
                             <button class="btn btn-primary" id="browseBtn">Browse Files</button>
-                            <input type="file" id="csvFileInput" accept=".csv" style="display: none;">
+                            <input type="file" id="csvFileInput" accept=".csv,.xlsx,.xls" style="display: none;">
                         </div>
                         <div class="upload-status" id="uploadStatus" style="display: none;">
                             <div class="status-item matched">
@@ -127,10 +130,20 @@
                                         <span class="checkmark"></span>
                                         RSA
                                     </label>
-                                    <label class="checkbox-item">
-                                        <input type="checkbox" class="branch-checkbox" value="OVS">
+                                    <label class="checkbox-item parent-branch">
+                                        <input type="checkbox" class="branch-checkbox branch-parent" value="OVS" data-children="OVS-EG,OVS-PH">
                                         <span class="checkmark"></span>
-                                        OVS
+                                        OVS (All Overseas)
+                                    </label>
+                                    <label class="checkbox-item sub-branch">
+                                        <input type="checkbox" class="branch-checkbox branch-child" value="OVS-EG" data-parent="OVS">
+                                        <span class="checkmark"></span>
+                                        <i class="fas fa-arrow-right sub-icon"></i> Egypt
+                                    </label>
+                                    <label class="checkbox-item sub-branch">
+                                        <input type="checkbox" class="branch-checkbox branch-child" value="OVS-PH" data-parent="OVS">
+                                        <span class="checkmark"></span>
+                                        <i class="fas fa-arrow-right sub-icon"></i> Philippines
                                     </label>
                                 </div>
                             </div>

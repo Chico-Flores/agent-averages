@@ -227,6 +227,8 @@ body {
 .branch-tag.TIJ { background: #dbeafe; color: #1e40af; }
 .branch-tag.RSA { background: #dcfce7; color: #166534; }
 .branch-tag.OVS { background: #fef3c7; color: #92400e; }
+.branch-tag.OVS_EG, .branch-tag.OVS-EG { background: #fef3c7; color: #92400e; }
+.branch-tag.OVS_PH, .branch-tag.OVS-PH { background: #fed7aa; color: #9a3412; }
 
 .position-tag.CLOSER { background: #f3e8ff; color: #7c3aed; }
 .position-tag.DIALER { background: #fce7f3; color: #be185d; }
@@ -428,6 +430,68 @@ body {
     font-weight: 600;
 }
 
+/* Sub-branch styling */
+.checkbox-item.sub-branch {
+    margin-left: 24px;
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    background: var(--gray-100);
+}
+
+.checkbox-item.sub-branch .sub-icon {
+    font-size: 0.7rem;
+    color: var(--gray-400);
+    margin-right: 4px;
+}
+
+.checkbox-item.parent-branch {
+    font-weight: 600;
+}
+
+/* Inline edit dropdowns in roster table */
+.roster-table .inline-select {
+    padding: 4px 8px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 4px center;
+    padding-right: 20px;
+}
+
+.roster-table .inline-select:hover {
+    border-color: var(--gray-300);
+    background-color: var(--gray-50);
+}
+
+.roster-table .inline-select:focus {
+    outline: none;
+    border-color: var(--primary);
+    background-color: var(--white);
+    box-shadow: 0 0 0 2px rgba(15, 76, 129, 0.1);
+}
+
+.roster-table .inline-select.branch-select {
+    color: var(--primary);
+}
+
+.roster-table .inline-select.position-select {
+    color: #7c3aed;
+}
+
+/* Branch colors for inline select */
+.inline-select option[value="TIJ"] { color: #1e40af; }
+.inline-select option[value="RSA"] { color: #166534; }
+.inline-select option[value="OVS-EG"] { color: #92400e; }
+.inline-select option[value="OVS-PH"] { color: #92400e; }
+
 /* Buttons */
 .btn {
     display: inline-flex;
@@ -465,6 +529,22 @@ body {
 
 .btn-secondary:hover:not(:disabled) {
     background: var(--gray-200);
+}
+
+/* Export button indicator when there are unsaved changes */
+.btn.has-changes {
+    background: linear-gradient(135deg, var(--warning) 0%, var(--accent-dark) 100%);
+    color: var(--gray-900);
+    animation: pulse-glow 2s infinite;
+}
+
+.btn.has-changes:hover {
+    background: linear-gradient(135deg, var(--accent-dark) 0%, var(--warning) 100%);
+}
+
+@keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 5px rgba(245, 158, 11, 0.5); }
+    50% { box-shadow: 0 0 15px rgba(245, 158, 11, 0.8); }
 }
 
 .btn-accent {
@@ -546,6 +626,19 @@ body {
 
 .stat-card.highlight .stat-value {
     color: var(--accent);
+}
+
+.stat-card.group-card {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border-color: #f59e0b;
+}
+
+.stat-card.group-card .stat-label {
+    color: #92400e;
+}
+
+.stat-card.group-card .stat-value {
+    color: #78350f;
 }
 
 /* Breakdown Section */
